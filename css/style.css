@@ -1,0 +1,886 @@
+/* ==========================================================================
+   CJ Map - 現代化深色介面樣式表 (style.css)
+   精確還原 CJMap - GUI 三欄式佈局，並具備現代化 UI、微動畫與清晰層次
+   ========================================================================== */
+
+/* 基礎重設與全局變數 */
+:root {
+  --bg-app: #18181b;
+  --bg-panel: #202026;
+  --bg-card: #282832;
+  --bg-card-hover: #30303c;
+  --bg-input: #1b1b22;
+  --bg-input-focus: #141419;
+
+  --border-color: #3b3b48;
+  --border-light: #4c4c5c;
+  --border-focus: #3b82f6;
+
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --text-success: #86efac;
+  --text-accent: #60a5fa;
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --success: #16a34a;
+  --success-hover: #15803d;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --warning: #d97706;
+
+  --status-active: #22c55e;
+  --status-inactive: #64748b;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 自訂捲軸 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ==========================================================================
+   主佈局容器 (三欄式佈局)
+   ========================================================================== */
+
+#app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 左側欄：搜尋與口袋名單 (寬度 280px) */
+#left-panel {
+  width: 290px;
+  min-width: 290px;
+  height: 100%;
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+/* 中間欄：旅程規劃與每日清單 (寬度 310px) */
+#middle-panel {
+  width: 320px;
+  min-width: 320px;
+  height: 100%;
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 9;
+}
+
+/* 右側欄：上方工具列與大地圖 (彈性填滿剩餘空間) */
+#right-panel {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ==========================================================================
+   按鈕與通用表單元件
+   ========================================================================== */
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1.2;
+  min-height: 24px;
+  height: auto;
+}
+
+.btn:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-success {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.btn-success:hover {
+  background-color: var(--success-hover);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover {
+  background-color: var(--danger-hover);
+}
+
+.btn-xs {
+  padding: 2px 6px;
+  font-size: 11px;
+  min-height: 24px;
+  height: auto;
+  line-height: 1.2;
+}
+
+/* 雙行按鈕專用 (如：新增一日、範圍顯示) 避免文字擠壓溢出 */
+.btn-2line {
+  padding: 2px 5px;
+  font-size: 10px;
+  line-height: 1.15;
+  min-height: 32px;
+  height: 32px;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  white-space: normal;
+}
+
+.input-text, .select-box, .textarea-box {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input-text:focus, .select-box:focus, .textarea-box:focus {
+  border-color: var(--border-focus);
+  background-color: var(--bg-input-focus);
+}
+
+.textarea-box {
+  resize: vertical;
+  min-height: 48px;
+  line-height: 1.3;
+}
+
+/* 狀態圓點指示器 (指示活躍項目) */
+.state-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--status-inactive);
+  display: inline-block;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.state-dot.active {
+  background-color: var(--status-active);
+  box-shadow: 0 0 6px var(--status-active);
+}
+
+/* ==========================================================================
+   左側面板：搜尋區 (Search Section)
+   ========================================================================== */
+
+.panel-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#search-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  border-bottom: 2px solid var(--border-color);
+  overflow: hidden;
+}
+
+.search-bar-container {
+  padding: 8px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+}
+
+.search-input {
+  flex: 1;
+}
+
+#search-results-list, #favorite-items-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 卡片共用樣式 (搜尋項目、口袋項目) */
+.item-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.item-card:hover {
+  border-color: var(--border-light);
+  background-color: var(--bg-card-hover);
+}
+
+.item-card-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.item-card-info {
+  font-size: 10px;
+  color: var(--text-muted);
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-line;
+  user-select: text;
+}
+
+.item-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+/* 口袋清單區 (Favorites Section) */
+#favorite-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nickname-input {
+  width: 100%;
+  font-weight: 600;
+  font-size: 12px;
+  color: #fef08a; /* 醒目亮黃色別名 */
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px dashed var(--border-color);
+  margin-bottom: 2px;
+}
+.nickname-input:focus {
+  border-style: solid;
+}
+
+/* ==========================================================================
+   中間面板：旅程規劃 (Journey Planning Section)
+   ========================================================================== */
+
+#journey-tool-bar {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+  flex-wrap: wrap;
+}
+
+.tool-buttons-group {
+  display: flex;
+  gap: 4px;
+}
+
+#journey-days-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 每日日程卡片 (Day Card) */
+.day-card {
+  background-color: #23232c;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.2s;
+}
+
+.day-card.active-day {
+  border-color: #3b82f6;
+}
+
+.day-header {
+  padding: 6px 8px;
+  background-color: #2c2c38;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  user-select: none;
+}
+
+.day-drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+}
+
+.day-date-btn {
+  background-color: #1e1e26;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.day-items-list {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 20px;
+}
+
+/* 旅程單項卡片 (Move / Stay / Path) */
+.journey-item-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-sm);
+}
+
+.journey-item-card.active-item {
+  border-color: var(--status-active);
+  background-color: #2f2f3d;
+  box-shadow: 0 0 0 1px var(--status-active);
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.item-row-label {
+  width: 44px;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.item-row-input {
+  flex: 1;
+}
+
+.item-row-input.text-success {
+  color: var(--text-success);
+  font-weight: 500;
+}
+
+.time-btn {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  text-align: left;
+  flex: 1;
+  cursor: pointer;
+}
+
+.time-btn:hover {
+  border-color: var(--border-light);
+}
+
+.icon-preview-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a20;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-preview-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.color-preview-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 2px solid #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.journey-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   右側面板：頂部工具列與地圖
+   ========================================================================== */
+
+#map-tool-bar {
+  height: 48px;
+  min-height: 48px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+
+.map-tools-left, .map-tools-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.journey-name-input {
+  width: 150px;
+  font-weight: 500;
+}
+
+#map-container {
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 48px);
+  position: relative;
+  background-color: #0f172a;
+}
+
+#leaflet-map {
+  width: 100%;
+  height: 100%;
+  background-color: #1e293b;
+}
+
+/* 自訂 Leaflet 標記浮動文字與提示 */
+.custom-map-pin {
+  transition: transform 0.15s ease-out;
+}
+.custom-map-pin:hover {
+  transform: scale(1.25);
+  z-index: 9999 !important;
+}
+
+.leaflet-tooltip.custom-tooltip {
+  background-color: rgba(24, 24, 27, 0.9);
+  border: 1px solid #3b82f6;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* 右鍵選單彈窗 (Context Menu) */
+.map-context-menu {
+  position: absolute;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  display: none;
+}
+
+.map-context-menu button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: var(--text-main);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.map-context-menu button:hover {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* ==========================================================================
+   模態彈窗 (Modals: 設定、圖示選擇器、顏色選擇器、日期時間選擇器)
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal-window {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 90vw;
+  max-height: 90vh;
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  padding: 10px 14px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.modal-body {
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-footer {
+  padding: 8px 14px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* 圖示挑選器網格 (8x8 = 64 Icons) */
+.icon-picker-colors {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+
+.icon-grid-item {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.icon-grid-item:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--primary);
+}
+
+.icon-grid-item.selected {
+  border-color: var(--status-active);
+  background-color: rgba(34, 197, 94, 0.2);
+}
+
+.icon-grid-item img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* 顏色挑選器 */
+.color-picker-grid {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  justify-content: center;
+}
+
+.color-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s;
+}
+
+.color-circle:hover {
+  transform: scale(1.15);
+}
+
+.color-circle.selected {
+  border-color: #fff;
+  box-shadow: 0 0 8px #fff;
+}
+
+/* 表單設定行 */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.form-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   地圖懸浮子母街景視窗 (Floating Street View Window)
+   ========================================================================== */
+
+.floating-window {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 440px;
+  height: 310px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: floatWindowIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes floatWindowIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.floating-window-header {
+  padding: 6px 10px;
+  background-color: #1e1e28;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  user-select: none;
+  cursor: grab;
+}
+
+.floating-window-header button {
+  cursor: pointer;
+}
+
+.floating-window.dragging {
+  user-select: none;
+  transition: none !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 0 1px #3b82f6;
+}
+
+.floating-window.dragging .floating-window-header {
+  cursor: grabbing;
+}
+
+/* 拖曳期間禁止 iframe 搶奪滑鼠事件，確保拖拉滑順不卡頓 */
+.floating-window.dragging iframe {
+  pointer-events: none;
+}
+
+.floating-window-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.floating-window-body {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background-color: #0b0b10;
+  position: relative;
+}
+
+.floating-window-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+

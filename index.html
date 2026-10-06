@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>itinerary - 旅遊規劃與路線地圖</title>
+
+  <!-- PWA 支援與桌面應用程式設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e1e28">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/750.png">
+  <link rel="icon" type="image/png" href="icons/750.png">
+
+  <!-- Leaflet 開源地圖樣式與腳本 (完全免費，無需 API Key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- SortableJS 拖曳排序庫 (讓卡片上下拖曳超流暢) -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <!-- 應用程式主要樣式表 -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 主容器 (三欄式佈局) -->
+  <div id="app-container">
+
+    <!-- ==========================================
+         第一欄：左側面板 (搜尋結果與口袋名單)
+         ========================================== -->
+    <aside id="left-panel">
+      
+      <!-- 上半部：地點搜尋區 -->
+      <section id="search-section">
+        <div class="panel-header">
+          <span class="panel-title">🔍 地點搜尋</span>
+          <button id="clear-search-btn" class="btn btn-xs" title="清空搜尋結果">✕ 清空</button>
+        </div>
+        <div class="search-bar-container">
+          <input type="text" id="search-input" class="input-text search-input" placeholder="輸入地點、景點或地址...">
+          <button id="search-btn" class="btn btn-primary btn-xs">搜尋</button>
+        </div>
+        <div id="search-results-list">
+          <div style="text-align: center; color: var(--text-dim); padding: 20px 10px; font-size: 11px;">
+            在上方輸入關鍵字或地址<br>即可快速搜尋地點標記
+          </div>
+        </div>
+      </section>
+
+      <!-- 下半部：口袋清單區 -->
+      <section id="favorite-section">
+        <div class="panel-header">
+          <span class="panel-title">⭐ 口袋清單</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button id="fav-range-btn" class="btn btn-xs" title="地圖縮放至所有口袋景點">範圍顯示</button>
+            <label class="checkbox-label" title="在地圖上顯示/隱藏口袋景點標記">
+              <input type="checkbox" id="fav-toggle-show" checked> 顯示
+            </label>
+          </div>
+        </div>
+        <div id="favorite-items-list">
+          <div style="text-align: center; color: var(--text-dim); padding: 20px 10px; font-size: 11px;">
+            尚未收藏任何景點<br>搜尋後點擊「放入口袋」即可加入
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ==========================================
+         第二欄：中間面板 (旅程規劃與每日清單)
+         ========================================== -->
+    <main id="middle-panel">
+      
+      <!-- 頂部操作工具列 -->
+      <header id="journey-tool-bar">
+        <span class="panel-title">📅 旅程規劃</span>
+        <div class="tool-buttons-group">
+          <button id="btn-add-day" class="btn btn-2line btn-primary" title="新增一日旅程">新增<br>一日</button>
+          <button id="btn-add-move" class="btn btn-2line" title="新增移動行程 (點到點交通)">新增<br>移動</button>
+          <button id="btn-add-stay" class="btn btn-2line" title="新增停留行程 (定點景點/餐廳)">新增<br>停留</button>
+          <button id="btn-add-path" class="btn btn-2line" title="新增地圖自由繪製路徑">新增<br>路徑</button>
+        </div>
+      </header>
+
+      <!-- 每日日程可滾動容器 -->
+      <div id="journey-days-container">
+        <!-- 每日卡片將由 JavaScript 動態生成注入此處 -->
+      </div>
+
+    </main>
+
+    <!-- ==========================================
+         第三欄：右側面板 (地圖頂部工具列與大地圖)
+         ========================================== -->
+    <section id="right-panel">
+      
+      <!-- 地圖頂部工具列 -->
+      <nav id="map-tool-bar">
+        <div class="map-tools-left">
+          <button id="btn-show-journey-range" class="btn btn-2line" title="地圖縮放至整趟旅程的所有標記">範圍<br>顯示</button>
+          <button id="btn-new-journey" class="btn btn-2line" title="清空並建立新旅程">新的<br>旅程</button>
+          <button id="btn-save-journey" class="btn btn-2line btn-success" title="將旅程儲存為 JSON 檔案">儲存<br>旅程</button>
+          <button id="btn-load-journey" class="btn btn-2line" title="讀取先前儲存的 JSON 旅程檔案">讀取<br>旅程</button>
+          <input type="file" id="file-input-load" accept=".json" style="display: none;">
+          <button id="btn-make-report" class="btn btn-2line btn-primary" title="一鍵匯出 Google 我的地圖 WKT CSV 與預算明細 CSV">製作<br>報表</button>
+          <button id="btn-open-settings" class="btn btn-2line" title="設定步行速率、預設幣種與時區">系統<br>設定</button>
+          <button id="btn-open-help" class="btn btn-2line" title="查看操作說明">使用<br>說明</button>
+        </div>
+
+        <div class="map-tools-right">
+          <span style="font-size: 11px; color: var(--text-muted);">旅程名稱：</span>
+          <input type="text" id="input-journey-name" class="input-text journey-name-input" placeholder="未命名旅程">
+        </div>
+      </nav>
+
+      <!-- Leaflet 地圖容器 -->
+      <div id="map-container">
+        <div id="leaflet-map"></div>
+
+        <!-- 地圖右鍵快顯選單 -->
+        <div id="map-context-menu" class="map-context-menu">
+          <button id="btn-context-search">📍 搜尋此位置地址</button>
+        </div>
+
+        <!-- 地圖懸浮街景子母視窗 -->
+        <div id="floating-streetview" class="floating-window">
+          <div class="floating-window-header">
+            <span class="floating-window-title" id="floating-sv-title">📍 地點街景</span>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button id="btn-sv-popout" class="btn btn-xs" title="彈出為獨立子視窗（可隨意拖到第二螢幕觀看）">🗗 獨立視窗</button>
+              <button id="btn-sv-open-tab" class="btn btn-xs" title="另開分頁以全螢幕查看 360° 全景街景">全螢幕 ↗</button>
+              <button id="btn-sv-close" class="btn btn-xs btn-danger" title="關閉預覽">✕</button>
+            </div>
+          </div>
+          <div class="floating-window-body">
+            <iframe id="floating-sv-iframe" src="" allowfullscreen loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ==========================================
+       模態彈窗層 (Modals)
+       ========================================== -->
+
+  <!-- 1. 設定彈窗 (Settings Modal) -->
+  <div id="modal-settings" class="modal-backdrop">
+    <div class="modal-window" style="width: 360px;">
+      <div class="modal-header">
+        <span class="modal-title">⚙️ 系統設定</span>
+        <button class="btn btn-xs btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <span class="form-label">走路速率 (分/公里)：</span>
+          <input type="number" id="setting-walk-velocity" class="input-text" style="width: 80px;" min="3" max="120" value="20">
+        </div>
+        <div class="form-row">
+          <span class="form-label">預設幣種：</span>
+          <input type="text" id="setting-currency" class="input-text" style="width: 80px;" value="NTD">
+        </div>
+        <div class="form-row">
+          <span class="form-label">預設時區：</span>
+          <select id="setting-timezone" class="select-box" style="width: 80px;">
+            <option value="−12">UTC −12</option>
+            <option value="−11">UTC −11</option>
+            <option value="−10">UTC −10</option>
+            <option value="−09">UTC −09</option>
+            <option value="−08">UTC −08</option>
+            <option value="−07">UTC −07</option>
+            <option value="−06">UTC −06</option>
+            <option value="−05">UTC −05</option>
+            <option value="−04">UTC −04</option>
+            <option value="−03">UTC −03</option>
+            <option value="−02">UTC −02</option>
+            <option value="−01">UTC −01</option>
+            <option value="+00">UTC +00</option>
+            <option value="+01">UTC +01</option>
+            <option value="+02">UTC +02</option>
+            <option value="+03">UTC +03</option>
+            <option value="+04">UTC +04</option>
+            <option value="+05">UTC +05</option>
+            <option value="+06">UTC +06</option>
+            <option value="+07">UTC +07</option>
+            <option value="+08" selected>UTC +08</option>
+            <option value="+09">UTC +09</option>
+            <option value="+10">UTC +10</option>
+            <option value="+11">UTC +11</option>
+            <option value="+12">UTC +12</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-xs btn-close-modal">取消</button>
+        <button id="btn-save-settings" class="btn btn-xs btn-primary">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 圖示挑選器彈窗 (Icon Picker Modal) -->
+  <div id="modal-icon-picker" class="modal-backdrop">
+    <div class="modal-window" style="width: 380px;">
+      <div class="modal-header">
+        <span class="modal-title">🎨 挑選景點標記圖示</span>
+        <button class="btn btn-xs btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">選擇圖示顏色：</div>
+        <div id="icon-picker-color-bar" class="icon-picker-colors"></div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">選擇圖形樣式：</div>
+        <div id="icon-picker-grid" class="icon-picker-grid"></div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+          <span style="font-size: 11px;">目前選取：</span>
+          <div id="icon-picker-preview" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-xs btn-close-modal">取消</button>
+        <button id="btn-confirm-icon" class="btn btn-xs btn-primary">確定更換</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 顏色挑選器彈窗 (Color Picker Modal for Paths) -->
+  <div id="modal-color-picker" class="modal-backdrop">
+    <div class="modal-window" style="width: 320px;">
+      <div class="modal-header">
+        <span class="modal-title">🌈 挑選路徑顏色</span>
+        <button class="btn btn-xs btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="color-picker-grid" class="color-picker-grid"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-xs btn-close-modal">取消</button>
+        <button id="btn-confirm-color" class="btn btn-xs btn-primary">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 日期時間設定彈窗 (DateTime Picker Modal) -->
+  <div id="modal-datetime-picker" class="modal-backdrop">
+    <div class="modal-window" style="width: 330px;">
+      <div class="modal-header">
+        <span class="modal-title">⏰ 行程時間設定</span>
+        <button class="btn btn-xs btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <span class="form-label">選擇日期：</span>
+          <input type="date" id="dt-picker-date" class="input-text">
+        </div>
+        <div class="form-row">
+          <span class="form-label">時間 (時 : 分)：</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <input type="number" id="dt-picker-hour" class="input-text" min="0" max="23" style="width: 50px;" value="12">
+            <span>:</span>
+            <input type="number" id="dt-picker-minute" class="input-text" min="0" max="59" style="width: 50px;" value="30">
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label">所屬時區：</span>
+          <select id="dt-picker-timezone" class="select-box" style="width: 110px;">
+            <option value="−12">UTC −12</option>
+            <option value="−11">UTC −11</option>
+            <option value="−10">UTC −10</option>
+            <option value="−09">UTC −09</option>
+            <option value="−08">UTC −08</option>
+            <option value="−07">UTC −07</option>
+            <option value="−06">UTC −06</option>
+            <option value="−05">UTC −05</option>
+            <option value="−04">UTC −04</option>
+            <option value="−03">UTC −03</option>
+            <option value="−02">UTC −02</option>
+            <option value="−01">UTC −01</option>
+            <option value="+00">UTC +00</option>
+            <option value="+01">UTC +01</option>
+            <option value="+02">UTC +02</option>
+            <option value="+03">UTC +03</option>
+            <option value="+04">UTC +04</option>
+            <option value="+05">UTC +05</option>
+            <option value="+06">UTC +06</option>
+            <option value="+07">UTC +07</option>
+            <option value="+08" selected>UTC +08</option>
+            <option value="+09">UTC +09</option>
+            <option value="+10">UTC +10</option>
+            <option value="+11">UTC +11</option>
+            <option value="+12">UTC +12</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-xs btn-close-modal">取消</button>
+        <button id="btn-confirm-datetime" class="btn btn-xs btn-primary">確定套用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 說明彈窗 (Help Modal) -->
+  <div id="modal-help" class="modal-backdrop">
+    <div class="modal-window" style="width: 480px;">
+      <div class="modal-header">
+        <span class="modal-title">📖 itinerary 網頁版使用說明</span>
+        <button class="btn btn-xs btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body" style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+        <p><strong>1. 地點搜尋與地圖：</strong><br>
+        輸入景點或地址即可即時查詢與標記，支援右上角地圖風格切換與右鍵點擊反查地址。</p>
+        
+        <p><strong>2. 活躍項目連動 (綠色指示圓點)：</strong><br>
+        點擊任何行程卡片時，該項目的圓點會亮起綠色。此時在左側搜尋地點或口袋名單中，點擊「設為起點/終點/停留」，即可直接帶入！</p>
+        
+        <p><strong>3. 自由拖曳排序：</strong><br>
+        按住行程卡片左下角的圓點或日程標題，可自由上下拖曳改變順序。</p>
+        
+        <p><strong>4. 路徑繪製工具：</strong><br>
+        點擊「新增路徑」後，可點選「繪製」開始在地圖上點擊折線，支援「暫停」、「返回上一步」與「完成」。完成時系統會以 Haversine 演算法自動計算總長度與步行預估時間。</p>
+        
+        <p><strong>5. 街景與路線導航：</strong><br>
+        點擊地圖上的景點標記，可直接開啟 Google 官方實景街景；點擊移動項目的「規劃」即可開啟 Google Maps 路線規劃。</p>
+
+        <p><strong>6. 製作報表 (CSV)：</strong><br>
+        一鍵打包下載 3 份 CSV 檔案：包含可直接匯入「Google 我的地圖」的 WKT 旅程清單、口袋清單、以及統計預算表。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-xs btn-primary btn-close-modal">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 腳本引入順序：1. 資料模型 -> 2. 地圖模組 -> 3. 核心交互程式 -->
+  <script src="js/models.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
