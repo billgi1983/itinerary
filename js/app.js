@@ -88,6 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = (query || searchInput.value || '').trim();
     if (!q) return;
 
+    // 清空輸入欄位並自動聚焦，方便使用者直接輸入下一個搜尋關鍵字
+    searchInput.value = '';
+    searchInput.focus();
+
     searchResultsList.innerHTML = `<div style="text-align:center; padding: 20px; font-size:11px; color: var(--text-accent);">🔍 正在搜尋「${escapeHTML(q)}」...</div>`;
 
     try {
