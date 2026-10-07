@@ -88,9 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = (query || searchInput.value || '').trim();
     if (!q) return;
 
-    // 清空輸入欄位並自動聚焦，方便使用者直接輸入下一個搜尋關鍵字
+    // 清空輸入欄位（雙重保險防止 macOS 注音/拼音輸入法在 Enter 後把字元插回輸入框）
     searchInput.value = '';
-    searchInput.focus();
+    setTimeout(() => {
+      searchInput.value = '';
+      searchInput.focus();
+    }, 20);
 
     searchResultsList.innerHTML = `<div style="text-align:center; padding: 20px; font-size:11px; color: var(--text-accent);">🔍 正在搜尋「${escapeHTML(q)}」...</div>`;
 
@@ -233,9 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
     mapCtrl.clearSearchMarkers();
   });
 
-  searchBtn.addEventListener('click', () => executeSearch());
+  searchBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    executeSearch();
+  });
+
   searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') executeSearch();
+    // 若使用者正在 Mac 注音/拼音選字中，按 Enter 為確認選字，不觸發搜尋
+    if (e.isComposing || e.keyCode === 229) return;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      executeSearch();
+    }
   });
 
   // ==========================================
