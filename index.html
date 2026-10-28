@@ -17,6 +17,10 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+  <!-- MapLibre GL 3D 地圖引擎 (方案 A：100% 免費開源 3D 立體建築，免 API Key、免信用卡) -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
   <!-- SortableJS 拖曳排序庫 (讓卡片上下拖曳超流暢) -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
@@ -109,6 +113,7 @@
           <button id="btn-make-report" class="btn btn-2line btn-primary" title="一鍵匯出 Google 我的地圖 WKT CSV 與預算明細 CSV">製作<br>報表</button>
           <button id="btn-open-settings" class="btn btn-2line" title="設定步行速率、預設幣種與時區">系統<br>設定</button>
           <button id="btn-open-help" class="btn btn-2line" title="查看操作說明">使用<br>說明</button>
+          <button id="btn-toggle-3d" class="btn btn-2line btn-warning" title="切換 2D 平面 / 3D 立體建築航拍視角">3D<br>立體</button>
         </div>
 
         <div class="map-tools-right">
@@ -117,9 +122,10 @@
         </div>
       </nav>
 
-      <!-- Leaflet 地圖容器 -->
+      <!-- 地圖容器 (支援 2D Leaflet 與 3D MapLibre 無縫切換) -->
       <div id="map-container">
         <div id="leaflet-map"></div>
+        <div id="maplibre-3d-map" style="display: none; width: 100%; height: 100%;"></div>
 
         <!-- 地圖右鍵快顯選單 -->
         <div id="map-context-menu" class="map-context-menu">
@@ -335,9 +341,10 @@
     </div>
   </div>
 
-  <!-- 腳本引入順序：1. 資料模型 -> 2. 地圖模組 -> 3. 核心交互程式 (附帶版本號強制更新瀏覽器快取) -->
+  <!-- 腳本引入順序：1. 資料模型 -> 2. 2D 地圖模組 -> 3. 3D 地圖模組 -> 4. 核心交互程式 -->
   <script src="js/models.js?v=4.3"></script>
   <script src="js/map.js?v=4.3"></script>
-  <script src="js/app.js?v=4.3"></script>
+  <script src="js/map3d.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
 </body>
 </html>

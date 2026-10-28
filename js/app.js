@@ -12,6 +12,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const dataCenter = new DataCenter();
   const mapCtrl = new CJMapController('leaflet-map');
+  const map3dCtrl = new CJMap3DController('maplibre-3d-map');
+  let currentMapMode = '2D'; // '2D' 或 '3D'
+
+  // 3D 地圖標記點擊連動開啟懸浮街景
+  map3dCtrl.onMarkerClickCallback = (lat, lng, title) => {
+    mapCtrl.openStreetView(lat, lng, title);
+  };
+
+  // 攔截並同步連動 3D 地圖圖層渲染
+  const origRenderJourney = mapCtrl.renderJourney.bind(mapCtrl);
+  mapCtrl.renderJourney = function(days) {
+    origRenderJourney(days);
+    if (map3dCtrl && map3dCtrl.isInitialized) {
+      map3dCtrl.renderJourney(days);
+    }
+  };
+
+  const origRenderFavorites = mapCtrl.renderFavoriteMarkers.bind(mapCtrl);
+  mapCtrl.renderFavoriteMarkers = function(favs, isVis) {
+    origRenderFavorites(favs, isVis);
+    if (map3dCtrl && map3dCtrl.isInitialized) {
+      map3dCtrl.renderFavorites(favs, isVis);
+    }
+  };
+
+  const origRenderSearch = mapCtrl.renderSearchMarkers.bind(mapCtrl);
+  mapCtrl.renderSearchMarkers = function(places) {
+    origRenderSearch(places);
+    if (map3dCtrl && map3dCtrl.isInitialized) {
+      map3dCtrl.renderSearchResults(places);
+    }
+  };
 
   // 暫存彈窗編輯中的對象指標
   let currentEditingPlace = null;       // 當前挑選圖示或時間的 PlaceModel
@@ -51,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnMakeReport = document.getElementById('btn-make-report');
   const btnOpenSettings = document.getElementById('btn-open-settings');
   const btnOpenHelp = document.getElementById('btn-open-help');
+  const btnToggle3D = document.getElementById('btn-toggle-3d');
+  const leafletMapEl = document.getElementById('leaflet-map');
+  const maplibre3dMapEl = document.getElementById('maplibre-3d-map');
 
   // 彈窗元素
   const modalSettings = document.getElementById('modal-settings');
@@ -217,10 +252,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const dynamicContainer = card.querySelector('.dynamic-actions');
       populateDynamicButtons(dynamicContainer, place);
 
-      // 滑鼠懸停連動地圖定位
+      // 滑鼠懸停連動地圖定位 (支援 2D / 3D 平滑過渡)
       card.addEventListener('mouseenter', () => {
         if (place.place_lat && place.place_lng) {
-          mapCtrl.map.panTo([place.place_lat, place.place_lng], { animate: true });
+          if (currentMapMode === '3D') {
+            map3dCtrl.flyTo(place.place_lat, place.place_lng);
+          } else {
+            mapCtrl.map.panTo([place.place_lat, place.place_lng], { animate: true });
+          }
         }
       });
 
@@ -234,6 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
     dataCenter.search_places = [];
     searchResultsList.innerHTML = `<div style="text-align:center; color: var(--text-dim); padding: 20px 10px; font-size: 11px;">已清空搜尋結果</div>`;
     mapCtrl.clearSearchMarkers();
+    if (map3dCtrl && map3dCtrl.isInitialized) {
+      map3dCtrl.clearMarkers();
+      map3dCtrl.renderJourney(dataCenter.journey_days);
+      map3dCtrl.renderFavorites(dataCenter.favorite_places, dataCenter.show_favorite);
+    }
   });
 
   searchBtn.addEventListener('click', (e) => {
@@ -340,9 +384,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 範圍顯示口袋景點
+  // 範圍顯示口袋景點 (支援 2D / 3D)
   favRangeBtn.addEventListener('click', () => {
     mapCtrl.fitFavorites(dataCenter.favorite_places);
+    if (currentMapMode === '3D') {
+      const coords = [];
+      if (Array.isArray(dataCenter.favorite_places)) {
+        dataCenter.favorite_places.forEach(p => {
+          if (p.place_lat && p.place_lng) coords.push([p.place_lat, p.place_lng]);
+        });
+      }
+      map3dCtrl.fitBounds(coords);
+    }
   });
 
   // 口袋名單地圖顯示開關
@@ -512,9 +565,25 @@ document.addEventListener('DOMContentLoaded', () => {
         openDayDatePicker(day);
       });
 
-      // 單日範圍顯示
+      // 單日範圍顯示 (支援 2D / 3D)
       dayCard.querySelector('.btn-day-range').addEventListener('click', () => {
         mapCtrl.fitDay(day);
+        if (currentMapMode === '3D') {
+          const coords = [];
+          if (Array.isArray(day.items)) {
+            day.items.forEach(item => {
+              if (item.type === 'move') {
+                if (item.placemodel_start?.place_lat) coords.push([item.placemodel_start.place_lat, item.placemodel_start.place_lng]);
+                if (item.placemodel_end?.place_lat) coords.push([item.placemodel_end.place_lat, item.placemodel_end.place_lng]);
+              } else if (item.type === 'stay') {
+                if (item.placemodel_start?.place_lat) coords.push([item.placemodel_start.place_lat, item.placemodel_start.place_lng]);
+              } else if (item.type === 'path' && Array.isArray(item.path_list)) {
+                item.path_list.forEach(pt => coords.push(pt));
+              }
+            });
+          }
+          map3dCtrl.fitBounds(coords);
+        }
       });
 
       // 單日顯示/隱藏開關
@@ -978,6 +1047,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const walkEl = card.querySelector('.path-walking-val');
 
     card.querySelector('.btn-draw-start').addEventListener('click', () => {
+      // 若處於 3D 視角，自動切換至 2D 平面以方便滑鼠精準繪製道路折線
+      if (currentMapMode === '3D' && btnToggle3D) {
+        btnToggle3D.click();
+      }
       mapCtrl.startDrawingPath(item, (updated) => {
         updated.updateDistance(dataCenter.default_walk_velocity);
         distEl.textContent = updated.distance.toFixed(2);
@@ -1334,10 +1407,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2800);
   }
 
-  // 1. 範圍顯示全部
+  // 1. 範圍顯示全部 (支援 2D / 3D)
   btnShowJourneyRange.addEventListener('click', () => {
     mapCtrl.fitAllJourneyAndFavorites(dataCenter);
+    if (currentMapMode === '3D') {
+      const coords = [];
+      if (dataCenter.show_favorite && Array.isArray(dataCenter.favorite_places)) {
+        dataCenter.favorite_places.forEach(p => {
+          if (p.place_lat && p.place_lng) coords.push([p.place_lat, p.place_lng]);
+        });
+      }
+      if (Array.isArray(dataCenter.journey_days)) {
+        dataCenter.journey_days.forEach(day => {
+          if (day.show_on_map && Array.isArray(day.items)) {
+            day.items.forEach(item => {
+              if (item.type === 'move') {
+                if (item.placemodel_start?.place_lat) coords.push([item.placemodel_start.place_lat, item.placemodel_start.place_lng]);
+                if (item.placemodel_end?.place_lat) coords.push([item.placemodel_end.place_lat, item.placemodel_end.place_lng]);
+              } else if (item.type === 'stay') {
+                if (item.placemodel_start?.place_lat) coords.push([item.placemodel_start.place_lat, item.placemodel_start.place_lng]);
+              } else if (item.type === 'path' && Array.isArray(item.path_list)) {
+                item.path_list.forEach(pt => coords.push(pt));
+              }
+            });
+          }
+        });
+      }
+      map3dCtrl.fitBounds(coords);
+    }
   });
+
+  // 1.5. 切換 2D 平面 / 3D 立體視角 (方案 A)
+  if (btnToggle3D) {
+    btnToggle3D.addEventListener('click', () => {
+      if (currentMapMode === '2D') {
+        // 切換至 3D 模式
+        currentMapMode = '3D';
+        btnToggle3D.innerHTML = '2D<br>平面';
+        btnToggle3D.classList.remove('btn-warning');
+        btnToggle3D.classList.add('btn-primary');
+        btnToggle3D.title = '點擊切換回 2D 平面地圖視角';
+
+        const center = mapCtrl.map.getCenter();
+        const zoom = mapCtrl.map.getZoom();
+
+        leafletMapEl.style.display = 'none';
+        maplibre3dMapEl.style.display = 'block';
+
+        const doRender3D = () => {
+          map3dCtrl.renderJourney(dataCenter.journey_days);
+          map3dCtrl.renderFavorites(dataCenter.favorite_places, dataCenter.show_favorite);
+          map3dCtrl.renderSearchResults(dataCenter.search_places);
+          map3dCtrl.resize();
+        };
+
+        if (!map3dCtrl.isInitialized) {
+          map3dCtrl.initMap(center.lat, center.lng, Math.min(zoom, 17), doRender3D);
+        } else {
+          map3dCtrl.resize();
+          map3dCtrl.flyTo(center.lat, center.lng, Math.min(zoom, 17));
+          doRender3D();
+        }
+
+        showSaveToast('🕶️ 已切換為 3D 立體建築空拍視角\n滑鼠右鍵拖曳可 360° 旋轉與調整俯角');
+      } else {
+        // 切換回 2D 模式
+        currentMapMode = '2D';
+        btnToggle3D.innerHTML = '3D<br>立體';
+        btnToggle3D.classList.remove('btn-primary');
+        btnToggle3D.classList.add('btn-warning');
+        btnToggle3D.title = '點擊切換至 3D 立體建築航拍視角';
+
+        const pos = map3dCtrl.getCenterAndZoom();
+        maplibre3dMapEl.style.display = 'none';
+        leafletMapEl.style.display = 'block';
+
+        mapCtrl.map.invalidateSize();
+        if (pos) {
+          mapCtrl.map.setView([pos.lat, pos.lng], Math.round(pos.zoom));
+        }
+        mapCtrl.renderJourney(dataCenter.journey_days);
+        mapCtrl.renderFavoriteMarkers(dataCenter.favorite_places, dataCenter.show_favorite);
+        mapCtrl.renderSearchMarkers(dataCenter.search_places);
+
+        showSaveToast('🗺️ 已切換回 2D 平面地圖視角');
+      }
+    });
+  }
 
   // 2. 新的旅程
   btnNewJourney.addEventListener('click', () => {
